@@ -66,7 +66,7 @@ class ApiAI(object):
     @subscibtion_key.setter
     def subscibtion_key(self, subscibtion_key):
         self._subscibtion_key = subscibtion_key
-    
+
     @property
     def session_id(self):
         """session_id user for unique identifier of current application user.
@@ -77,7 +77,7 @@ class ApiAI(object):
     @session_id.setter
     def session_id(self, session_id):
         self._session_id = session_id
-    
+
 
     def __init__(self, client_access_token, subscribtion_key):
         """Construct a `ApiAI`
@@ -96,35 +96,35 @@ class ApiAI(object):
         self.session_id = uuid.uuid4().hex
 
     def voice_request(self):
-        """Construct a VoiceRequest, prepare it. 
-        Fields of request default filled from `ApiAI` parameters 
+        """Construct a VoiceRequest, prepare it.
+        Fields of request default filled from `ApiAI` parameters
         (session_id, version, client_access_token, subscribtion_key).
         Returns `VoiceRequest` object.
         """
 
         request = VoiceRequest(
-            self.client_access_token, 
-            self.subscribtion_key, 
-            self._url, 
-            self.__connection__class, 
-            self._version, 
+            self.client_access_token,
+            self.subscribtion_key,
+            self._url,
+            self.__connection__class,
+            self._version,
             self.session_id)
 
         return request
 
     def text_request(self):
         """Construct a `VoiceRequest`, prepare it.
-        Fields of request default filled from `ApiAI` parameters 
+        Fields of request default filled from `ApiAI` parameters
         (session_id, version,client_access_token, subscribtion_key).
         Returns `TextRequest` object.
         """
 
         request = TextRequest(
-            self.client_access_token, 
-            self.subscribtion_key, 
-            self._url, 
-            self.__connection__class, 
-            self._version, 
+            self.client_access_token,
+            self.subscribtion_key,
+            self._url,
+            self.__connection__class,
+            self._version,
             self.session_id)
 
         return request
@@ -137,7 +137,7 @@ class _Serializable(object):
     """Private method used for object serialization."""
     def _to_dict(self):
         raise NotImplementedError()
-        
+
 
 class Entry(_Serializable):
     """User entry for class `Entity`
@@ -178,7 +178,7 @@ class Entry(_Serializable):
             'value': self.value,
             'synonyms': self.synonyms
         }
-        
+
 
 class Entity(_Serializable):
     """
@@ -191,7 +191,7 @@ class Entity(_Serializable):
     def name(self):
         "Entity name"
         return self._name
-    
+
     @name.setter
     def name(self, name):
         self._name = name
@@ -204,7 +204,7 @@ class Entity(_Serializable):
     @entries.setter
     def entries(self, entries):
         self._entries = entries
-    
+
     def __init__(self, name, entries):
         super(Entity, self).__init__()
 
@@ -226,7 +226,7 @@ class Request(object):
 
     @property
     def lang(self):
-        """lang property used for server determination current request language. 
+        """lang property used for server determination current request language.
         In `VoiceRequest` used for determinate language for ASR (Speech Recognitions) service.
         Default equal 'en'. For detail information about support language see https://docs.api.ai/docs/languages"""
         return self._lang
@@ -241,7 +241,7 @@ class Request(object):
         All contexts provided in current request will be setted after reset.
         Default equal False."""
         return self._resetContexts
-    
+
     @resetContexts.setter
     def resetContexts(self, resetContexts):
         self._resetContexts = resetContexts
@@ -250,7 +250,7 @@ class Request(object):
     def contexts(self):
         "Array of context objects. for detail information see https://docs.api.ai/v6/docs/concept-contexts"
         return self._contexts
-    
+
     @contexts.setter
     def contexts(self, contexts):
         self._contexts = contexts
@@ -276,13 +276,13 @@ class Request(object):
     @time_zone.setter
     def time_zone(self, time_zone):
         self._time_zone = time_zone
-    
+
     @property
     def entities(self):
-        """Array of entities that replace developer defined entities for this request only. 
+        """Array of entities that replace developer defined entities for this request only.
         The entity(ies) need to exist in the developer console."""
         return self._entities
-    
+
     @entities.setter
     def entities(self, entities):
         self._entities = entities
@@ -328,26 +328,33 @@ class Request(object):
         self._prepare_request()
 
     def _prepare_entities(self):
-        if self.entities: 
+        if self.entities:
             return list(map(lambda x: x._to_dict(), self.entities))
         return None
 
     def _prepare_proxy(self):
 
-        https_proxy = os.environ["https_proxy"]
+        self.proxy_enabled = False
+        if "https_proxy" in os.environ:
+            self.proxy_enabled = True
+            https_proxy = os.environ["https_proxy"]
 
-        #As proxies are set like "export https_proxy=$http_proxy"
-        #so it might start with 'https' or 'http'
+            #As proxies are set like "export https_proxy=$http_proxy"
+            #so it might start with 'https' or 'http'
 
-        https_proxy = https_proxy.replace("https://", "").rstrip("/")
-        https_proxy = https_proxy.replace("http://", "").rstrip("/")
-        (self.proxy_host, self.proxy_port) = https_proxy.split(":")
-        self.proxy_port = int(self.proxy_port)
+            https_proxy = https_proxy.replace("https://", "").rstrip("/")
+            https_proxy = https_proxy.replace("http://", "").rstrip("/")
+            (self.proxy_host, self.proxy_port) = https_proxy.split(":")
+            self.proxy_port = int(self.proxy_port)
+
 
 
     def _prepare_request(self, debug=False):
-        self._connection = self.__connection__class(self.proxy_host,self.proxy_port)
-        self._connection.set_tunnel(self.url)
+        if(self.proxy_enabled):
+            self._connection = self.__connection__class(self.proxy_host,self.proxy_port)
+            self._connection.set_tunnel(self.url)
+        else:
+            self._connection = self.__connection__class(self.url)
 
         if debug:
             self._connection.debuglevel = 1
@@ -453,7 +460,7 @@ class TextRequest(Request):
         return {
             'Content-Type': 'application/json; charset=utf-8',
             'Content-Length': len(self._prepage_end_request_data())
-            } 
+            }
 
     def _prepage_begin_request_data(self):
         return None
@@ -508,7 +515,7 @@ class VoiceRequest(Request):
             parts.append(chunk.decode('latin-1'))
         else:
             parts.append(chunk)
-            
+
         parts.append('')
 
         newChunk = '\r\n'.join(parts)
@@ -522,7 +529,7 @@ class VoiceRequest(Request):
             'Content-Type': 'multipart/form-data; boundary=%s' % self.boundary,
             'Transfer-Encoding': 'chunked',
             'Connection': 'keep-alive',
-            } 
+            }
 
     def _prepage_begin_request_data(self):
         data = '--%s\r\n' % self.boundary
@@ -554,4 +561,3 @@ class VoiceRequest(Request):
 
     def _beforegetresponce(self):
         self._connection.send(b('0\r\n\r\n'))
-        
