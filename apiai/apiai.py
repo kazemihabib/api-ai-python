@@ -11,6 +11,7 @@ try: # Python 3
 except ImportError:
     from httplib import HTTPSConnection
 
+import os
 import sys
 import json
 import uuid
@@ -323,6 +324,7 @@ class Request(object):
 
         self.time_zone = strftime("%z", gmtime())
 
+        self._prepare_proxy()
         self._prepare_request()
 
     def _prepare_entities(self):
@@ -330,8 +332,22 @@ class Request(object):
             return list(map(lambda x: x._to_dict(), self.entities))
         return None
 
+    def _prepare_proxy(self):
+
+        https_proxy = os.environ["https_proxy"]
+
+        #As proxies are set like "export https_proxy=$http_proxy"
+        #so it might start with 'https' or 'http'
+
+        https_proxy = https_proxy.replace("https://", "").rstrip("/")
+        https_proxy = https_proxy.replace("http://", "").rstrip("/")
+        (self.proxy_host, self.proxy_port) = https_proxy.split(":")
+        self.proxy_port = int(self.proxy_port)
+
+
     def _prepare_request(self, debug=False):
-        self._connection = self.__connection__class(self.url)
+        self._connection = self.__connection__class(self.proxy_host,self.proxy_port)
+        self._connection.set_tunnel(self.url)
 
         if debug:
             self._connection.debuglevel = 1
